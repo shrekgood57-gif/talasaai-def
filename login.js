@@ -6,6 +6,36 @@ const loginBtn = document.getElementById("loginBtn");
 const loginError = document.getElementById("loginError");
 const passwordInput = document.getElementById("password");
 const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+const loginForm = document.getElementById("loginForm");
+const openLoginBtn = document.getElementById("openLoginBtn");
+const closeLoginBtn = document.getElementById("closeLoginBtn");
+const loginPanel = document.getElementById("loginPanel");
+
+function openLogin() {
+  document.body.classList.add("login-open");
+  loginPanel.hidden = false;
+  loginPanel.setAttribute("aria-hidden", "false");
+  openLoginBtn.setAttribute("aria-expanded", "true");
+  window.setTimeout(() => {
+    if (loginPanel.getAttribute("aria-hidden") === "false") {
+      document.getElementById("email").focus();
+    }
+  }, 350);
+}
+
+function closeLogin() {
+  document.body.classList.remove("login-open");
+  loginPanel.setAttribute("aria-hidden", "true");
+  openLoginBtn.setAttribute("aria-expanded", "false");
+  loginError.hidden = true;
+  openLoginBtn.focus();
+  window.setTimeout(() => {
+    if (loginPanel.getAttribute("aria-hidden") === "true") loginPanel.hidden = true;
+  }, 350);
+}
+
+openLoginBtn.addEventListener("click", openLogin);
+closeLoginBtn.addEventListener("click", closeLogin);
 
 function syncRoleButtons() {
   const isStudent = role === "student";
@@ -32,7 +62,8 @@ togglePasswordBtn.addEventListener("click", () => {
   togglePasswordBtn.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
 });
 
-loginBtn.addEventListener("click", async () => {
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
@@ -77,7 +108,7 @@ loginBtn.addEventListener("click", async () => {
   } finally {
     loginBtn.disabled = false;
     loginBtn.classList.remove("is-loading");
-    loginBtn.textContent = "Sign In";
+    loginBtn.textContent = "Login";
   }
 });
 
@@ -95,5 +126,3 @@ passwordInput.addEventListener("input", () => {
 });
 
 syncRoleButtons();
-
-

@@ -8,50 +8,75 @@
   <link rel="apple-touch-icon" sizes="180x180" href="image/logo-final.png">
   <link rel="manifest" href="image/site.webmanifest">
   <script src="runtime-config.js?v=20260316c"></script>
-  <link rel="stylesheet" href="stylesheets/login.css?v=20260327h">
+  <link rel="stylesheet" href="stylesheets/login.css?v=20261007g">
 </head>
-<body>
+<body class="login-page">
   <div class="background">
     <div class="auth-shell">
       <div class="login-card">
-        <section class="login-form-panel" aria-label="Sign in">
-          <div class="card-intro">
-            <div class="school-brand">
-              <div class="school-brand-word">TalaSaAI</div>
+        <section class="login-welcome" aria-label="Welcome to TalaSaAI">
+          <a class="login-logo" href="/" aria-label="TalaSaAI home">
+            <img src="image/logo-final.png" alt="">
+          </a>
+          <div class="welcome-content">
+            <h1 class="welcome-title">TalaSaAI</h1>
+            <p class="welcome-tagline">Where learning meets AI</p>
+            <p class="welcome-description">
+              TalaSaAI is an AI-powered educational platform designed to assist learners in accessing information and educational resources more efficiently. It provides intelligent support to help users engage with learning materials and explore topics with ease. Experience a smarter and more accessible way to learn through technology.
+            </p>
+            <div class="welcome-action">
+              <p>Ready to begin your learning journey?<br>Log in to continue.</p>
+              <button id="openLoginBtn" class="welcome-login-button" type="button" aria-expanded="false" aria-controls="loginPanel">
+                Login
+              </button>
             </div>
           </div>
+        </section>
 
-          <div class="toggle-container" role="tablist" aria-label="Portal selection">
-            <button id="studentBtn" class="toggle-button active" type="button" role="tab" aria-selected="true">Student</button>
-            <button id="teacherBtn" class="toggle-button" type="button" role="tab" aria-selected="false">Teacher</button>
+        <section class="login-photo" aria-label="Sign in to TalaSaAI">
+          <img class="login-photo-shadow" src="image/login-reading.png" alt="" aria-hidden="true">
+          <img class="login-photo-image" src="image/login-reading.png" alt="A student reading a book in a tree">
+          <div id="loginPanel" class="login-form-panel" aria-label="Sign in" aria-hidden="true" hidden>
+            <button id="closeLoginBtn" class="login-back-button" type="button">Back</button>
+            <div class="card-intro">
+              <div class="school-brand">
+                <div class="school-brand-word">TalaSaAI</div>
+              </div>
+              <p class="subtitle">Sign in to continue</p>
+            </div>
+
+            <form id="loginForm" novalidate>
+              <div class="toggle-container" role="tablist" aria-label="Portal selection">
+                <button id="studentBtn" class="toggle-button active" type="button" role="tab" aria-selected="true">Student</button>
+                <button id="teacherBtn" class="toggle-button" type="button" role="tab" aria-selected="false">Teacher</button>
+              </div>
+
+              <label class="field-group" for="email">
+                <span class="field-label">Email</span>
+                <div class="input-wrap">
+                  <input type="email" id="email" class="input" placeholder="name@school.edu" autocomplete="email" inputmode="email">
+                </div>
+              </label>
+              <label class="field-group" for="password">
+                <span class="field-label">Password</span>
+                <div class="input-wrap">
+                  <input type="password" id="password" class="input" placeholder="Enter your password" autocomplete="current-password">
+                  <button id="togglePasswordBtn" class="password-toggle" type="button" aria-label="Show password">Show</button>
+                </div>
+              </label>
+
+              <p id="loginError" class="login-error" role="alert" hidden></p>
+              <button id="loginBtn" class="button" type="submit">Login</button>
+            </form>
           </div>
-
-          <label class="field-group" for="email">
-            <span class="field-label">School Email</span>
-            <div class="input-wrap">
-              <input type="email" id="email" class="input" placeholder="name@school.edu" autocomplete="email" inputmode="email">
-            </div>
-          </label>
-          <label class="field-group" for="password">
-            <span class="field-label">Password</span>
-            <div class="input-wrap">
-              <input type="password" id="password" class="input" placeholder="Enter your password" autocomplete="current-password">
-              <button id="togglePasswordBtn" class="password-toggle" type="button" aria-label="Show password">Show</button>
-            </div>
-          </label>
-
-          <p id="loginError" class="login-error" hidden></p>
-
-          <button id="loginBtn" class="button">Sign In</button>
-
-         
+          <div class="photo-wash" aria-hidden="true"></div>
         </section>
       </div>
     </div>
   </div>
 
   <script src="api.js?v=20260804"></script>
-  <script src="login.js?v=20260316b"></script>
+  <script src="login.js?v=20261007a"></script>
   <script>
     console.group("ReadWise Login Page Debug");
     console.log("localStorage.readwise_user_v1", localStorage.getItem("readwise_user_v1"));
