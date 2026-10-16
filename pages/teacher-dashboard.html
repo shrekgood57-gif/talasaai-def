@@ -752,6 +752,7 @@
       const levelStudents = (dashboard && dashboard.levelStudents) || { EASY: [], MODERATE: [], HARD: [] };
       const recentSubmissions = (dashboard && dashboard.recentSubmissions) || [];
       const pendingReviews = (dashboard && dashboard.pendingReviews) || [];
+      const stagnantStudents = (dashboard && dashboard.stagnantStudents) || [];
       const recommendationCount = Number((dashboard && dashboard.recommendationCount) || 0);
 
       document.getElementById("dashboard-week-label").textContent = "Week " + activeWeek;
@@ -803,6 +804,14 @@
         actions.push(
           '<div class="dashboard-alert dashboard-alert-danger">' +
             '<div><strong>Short Answer Pending</strong><p>' + escapeHtml(student.name) + ' | ' + escapeHtml(student.pendingReviewCount) + ' response(s) need review</p></div>' +
+            '<a href="teacher-student-detail.html?id=' + encodeURIComponent(student.id) + '" class="btn btn-danger btn-sm">Open Student</a>' +
+          '</div>'
+        );
+      });
+      stagnantStudents.forEach(function(student) {
+        actions.push(
+          '<div class="dashboard-alert dashboard-alert-danger">' +
+            '<div><strong>Stagnant Learning Alert</strong><p>' + escapeHtml(student.name) + ' | ' + escapeHtml(student.grade) + ' ' + escapeHtml(student.section) + '<br>' + escapeHtml(student.stagnantReason) + '</p></div>' +
             '<a href="teacher-student-detail.html?id=' + encodeURIComponent(student.id) + '" class="btn btn-danger btn-sm">Open Student</a>' +
           '</div>'
         );
@@ -893,7 +902,6 @@
 </script>
 </body>
 </html>
-
 
 
 

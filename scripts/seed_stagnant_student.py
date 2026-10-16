@@ -19,10 +19,16 @@ TOTAL_PROGRAM_WEEKS = 8
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Create a student with two non-improving weekly quiz scores."
+        description="Create students with two non-improving weekly quiz scores."
     )
     parser.add_argument("--email", required=True, help="New student's login email.")
     parser.add_argument("--name", required=True, help="Student's full name.")
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=1,
+        help="Number of students to create (default: 1).",
+    )
     parser.add_argument("--grade", default="7", help="Student's grade (default: 7).")
     parser.add_argument(
         "--section", default="Stagnant Demo", help="Student's section."
@@ -59,6 +65,10 @@ def validate_args(args):
         raise ValueError("Grade must contain 1 to 20 characters.")
     if len(args.section) > 100:
         raise ValueError("Section must be no longer than 100 characters.")
+    if args.count < 1:
+        raise ValueError("Count must be at least 1.")
+    if args.count > 50:
+        raise ValueError("Count must not exceed 50.")
     if not 0 <= args.latest_score <= args.previous_score <= 100:
         raise ValueError(
             "Scores must be from 0 to 100, and latest score must not exceed "
@@ -96,6 +106,39 @@ def next_student_id(cur):
     return f"s{int(cur.fetchone()['max_id'] or 0) + 1}"
 
 
+def make_student_accounts(cur, base_email, base_name, count):
+    local_part, separator, domain = base_email.partition("@")
+    if (
+        not separator
+        or not local_part
+        or not domain
+        or "@" in domain
+        or any(char.isspace() for char in base_email)
+    ):
+        raise ValueError("Email must be a valid address with a local part and domain.")
+
+    accounts = []
+    suffix = 1
+    while len(accounts) < count:
+        email = (
+            base_email
+            if suffix == 1
+            else f"{local_part}+{suffix}@{domain}"
+        )
+        name = base_name if suffix == 1 else f"{base_name} {suffix}"
+        if len(email) > 255:
+            raise ValueError("Generated email address exceeds 255 characters.")
+        if len(name) > 255:
+            raise ValueError("Generated student name exceeds 255 characters.")
+
+        cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+        if not cur.fetchone():
+            accounts.append((name, email))
+        suffix += 1
+
+    return accounts
+
+
 def main():
     args = parse_args()
     email, name = validate_args(args)
@@ -108,12 +151,6 @@ def main():
     conn = mysql.connector.connect(**mysql_config(), autocommit=False)
     cur = conn.cursor(dictionary=True)
     try:
-        cur.execute("SELECT id FROM users WHERE email=%s", (email,))
-        if cur.fetchone():
-            raise ValueError(
-                f"A user with email {email!r} already exists; no changes were made."
-            )
-
         active_week = get_active_week(cur)
         latest_week = max(active_week, 2)
         previous_week = latest_week - 1
@@ -152,48 +189,56 @@ def main():
                 fallback_weeks.append(week)
             attempts.append((week, passage))
 
-        student_id = next_student_id(cur)
-        cur.execute(
-            """
-            INSERT INTO users (email, password_hash, role, is_active)
-            VALUES (%s, %s, 'student', 1)
-            """,
-            (email, generate_password_hash(password)),
-        )
-        user_id = cur.lastrowid
-        cur.execute(
-            """
-            INSERT INTO students
-                (id, user_id, full_name, grade, section, class_level,
-                 pre_score, pre_assessment_completed)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 1)
-            """,
-            (
-                student_id,
-                user_id,
-                name,
-                args.grade.strip(),
-                args.section,
-                args.class_level,
-                args.previous_score,
-            ),
-        )
-
-        for (week, passage), score in zip(
-            attempts, (args.previous_score, args.latest_score)
-        ):
+        accounts = make_student_accounts(cur, email, name, args.count)
+        created_students = []
+        for student_name, student_email in accounts:
+            student_id = next_student_id(cur)
             cur.execute(
                 """
-                INSERT INTO quiz_attempts
-                    (student_id, passage_id, week_no, score_pct,
-                     correct_count, total_count)
-                VALUES (%s, %s, %s, %s, %s, 100)
+                INSERT INTO users (email, password_hash, role, is_active)
+                VALUES (%s, %s, 'student', 1)
                 """,
-                (student_id, passage["passage_id"], week, score, score),
+                (student_email, generate_password_hash(password)),
+            )
+            user_id = cur.lastrowid
+            cur.execute(
+                """
+                INSERT INTO students
+                    (id, user_id, full_name, grade, section, class_level,
+                     pre_score, pre_assessment_completed)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 1)
+                """,
+                (
+                    student_id,
+                    user_id,
+                    student_name,
+                    args.grade.strip(),
+                    args.section,
+                    args.class_level,
+                    args.previous_score,
+                ),
             )
 
+            for (week, passage), score in zip(
+                attempts, (args.previous_score, args.latest_score)
+            ):
+                cur.execute(
+                    """
+                    INSERT INTO quiz_attempts
+                        (student_id, passage_id, week_no, score_pct,
+                         correct_count, total_count)
+                    VALUES (%s, %s, %s, %s, %s, 100)
+                    """,
+                    (student_id, passage["passage_id"], week, score, score),
+                )
+            created_students.append((student_name, student_id, student_email))
+
         conn.commit()
-        print(f"Created stagnant student {name} ({student_id}, {email}).")
+        for student_name, student_id, student_email in created_students:
+            print(
+                f"Created stagnant student {student_name} "
+                f"({student_id}, {student_email})."
+            )
         print(
             f"Weekly scores: Week {previous_week} {args.previous_score}% "
             f"to Week {latest_week} {args.latest_score}%."
@@ -204,7 +249,10 @@ def main():
                 f"Note: Week {weeks} had no {args.class_level} assignment; "
                 "a published passage of that level was used instead."
             )
-        print("The student should appear in the teacher report's stagnant alerts.")
+        print(
+            f"All {len(accounts)} students should appear in the teacher report "
+            "and dashboard's stagnant-learning alerts."
+        )
     except Exception:
         conn.rollback()
         raise

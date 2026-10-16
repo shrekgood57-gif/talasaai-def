@@ -16,6 +16,7 @@ from routes.helpers import (
     calculate_wpm,
     fetch_pending_short_answer,
     fetch_pending_short_answers,
+    get_stagnation_details,
     fetch_student_progress,
     fetch_teacher_student_summaries,
     get_program_settings,
@@ -156,6 +157,7 @@ def teacher_dashboard():
     level_counts = {"EASY": 0, "MODERATE": 0, "HARD": 0}
     level_students = {"EASY": [], "MODERATE": [], "HARD": []}
     pending_reviews = []
+    stagnant_students = []
     recommendation_count = 0
     for student in students:
         level = normalize_class_level(student["classLevel"])
@@ -163,6 +165,17 @@ def teacher_dashboard():
         level_students[level].append(student["name"])
         if student["pendingReviewCount"]:
             pending_reviews.append(student)
+        is_stagnant, stagnant_reason = get_stagnation_details(student["progress"])
+        if is_stagnant:
+            stagnant_students.append(
+                {
+                    "id": student["id"],
+                    "name": student["name"],
+                    "grade": student["grade"],
+                    "section": student["section"],
+                    "stagnantReason": stagnant_reason,
+                }
+            )
         if len(student["progress"]) >= 2:
             recommendation_count += 1
 
@@ -172,6 +185,7 @@ def teacher_dashboard():
             "levelStudents": level_students,
             "recentSubmissions": submissions,
             "pendingReviews": pending_reviews[:3],
+            "stagnantStudents": stagnant_students,
             "recommendationCount": recommendation_count,
             "studentCount": len(students),
         }

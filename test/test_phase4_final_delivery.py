@@ -1,6 +1,10 @@
+from contextlib import nullcontext
 import unittest
+from unittest.mock import patch
 
 from app import app
+import routes.teacher_routes as teacher_routes
+from scripts.seed_stagnant_student import make_student_accounts
 
 
 class Phase4FinalDeliveryTests(unittest.TestCase):
@@ -27,6 +31,83 @@ class Phase4FinalDeliveryTests(unittest.TestCase):
             value = question["answerIndex"] if question["type"] in {"multiple_choice", "multiple_choice_harder"} else question["answerKey"]
             answers.append({"type": question["type"], "value": value})
         return answers, len(questions)
+
+    def test_stagnant_students_are_in_dashboard_pending_actions_data(self):
+        class DashboardCursor:
+            def execute(self, query):
+                pass
+
+            def fetchall(self):
+                return []
+
+        student = {
+            "id": "s88",
+            "name": "Stagnant Demo",
+            "grade": "7",
+            "section": "Demo",
+            "classLevel": "EASY",
+            "pendingReviewCount": 0,
+            "progress": [
+                {"week": 5, "score": 60},
+                {"week": 6, "score": 55},
+            ],
+        }
+        with (
+            patch.object(teacher_routes, "require_role", return_value=(None, None)),
+            patch.object(
+                teacher_routes,
+                "db_cursor",
+                return_value=nullcontext((None, DashboardCursor())),
+            ),
+            patch.object(
+                teacher_routes,
+                "fetch_teacher_student_summaries",
+                return_value=[student],
+            ),
+            app.test_request_context("/api/teacher/dashboard"),
+        ):
+            response, status = teacher_routes.teacher_dashboard()
+
+        self.assertEqual(status, 200)
+        payload = response.get_json()["data"]
+        self.assertEqual(
+            payload["stagnantStudents"],
+            [
+                {
+                    "id": "s88",
+                    "name": "Stagnant Demo",
+                    "grade": "7",
+                    "section": "Demo",
+                    "stagnantReason": "No improvement from Week 5 (60%) to Week 6 (55).",
+                }
+            ],
+        )
+
+    def test_batch_stagnant_student_emails_skip_existing_accounts(self):
+        class ExistingEmailCursor:
+            def __init__(self):
+                self.email = None
+
+            def execute(self, query, params):
+                self.email = params[0]
+
+            def fetchone(self):
+                return {"id": 1} if self.email in {
+                    "stagnant@example.com",
+                    "stagnant+2@example.com",
+                } else None
+
+        accounts = make_student_accounts(
+            ExistingEmailCursor(), "stagnant@example.com", "Stagnant Student", 3
+        )
+        self.assertEqual(
+            accounts,
+            [
+                ("Stagnant Student 3", "stagnant+3@example.com"),
+                ("Stagnant Student 4", "stagnant+4@example.com"),
+                ("Stagnant Student 5", "stagnant+5@example.com"),
+            ],
+        )
 
     def test_student_login_and_weekly_passages(self):
         token = self.login("juan.delacruz@pnhs.edu", "password123", "student")

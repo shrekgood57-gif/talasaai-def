@@ -169,23 +169,34 @@ You now have:
 
 ## Live Database Stagnant-Student Seed
 
-To add a student to the live MySQL database and make the teacher report display a
-stagnant-learning alert, run this from the application repository in the Railway
-console:
+To add students to the live MySQL database and show them in Reports and the
+Teacher Dashboard's Pending Actions, run this from the application repository in
+the Railway console:
 
 ```powershell
 python scripts\seed_stagnant_student.py --email stagnant.demo@example.com --name "Stagnant Demo Student"
 ```
 
+To create three students in one run, use `--count 3`:
+
+```powershell
+python scripts\seed_stagnant_student.py --email stagnant.demo@example.com --name "Stagnant Demo Student" --count 3
+```
+
 The script prompts for and confirms a password without displaying it. It uses the
 database connection settings already configured for the app, creates a new active
-student account, and inserts two quiz attempts using published passages assigned
-to the student's class level. If a week has no assignment, it uses another
-published passage of that level and prints a note. By default the earlier score
-is 60% and the latest is 55%. You can change those with `--previous-score` and
-`--latest-score`, provided the latest score is not higher.
+student account per requested student, and inserts two quiz attempts using
+published passages assigned to the student's class level. If a week has no
+assignment, it uses another published passage of that level and prints a note.
+By default the earlier score is 60% and the latest is 55%. You can change those
+with `--previous-score` and `--latest-score`, provided the latest score is not higher.
+
+Each additional account uses a `+2`, `+3`, etc. email suffix and a matching
+number after the name. Existing email addresses are skipped while choosing new
+addresses, and all requested accounts are committed together or rolled back
+together on error.
 
 The script uses the current program week and the preceding week. If the program
-is in Week 1, it seeds Weeks 1 and 2 so there are two scores to compare. It refuses
-to reuse an existing email, and rolls back all inserts if no published passage of
+is in Week 1, it seeds Weeks 1 and 2 so there are two scores to compare. It never
+reuses an existing email and rolls back all inserts if no published passage of
 the selected class level is available.
