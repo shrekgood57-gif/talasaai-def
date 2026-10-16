@@ -118,6 +118,7 @@ def main():
         latest_week = max(active_week, 2)
         previous_week = latest_week - 1
         attempts = []
+        fallback_weeks = []
         for week in (previous_week, latest_week):
             cur.execute(
                 """
@@ -132,10 +133,23 @@ def main():
             )
             passage = cur.fetchone()
             if not passage:
-                raise RuntimeError(
-                    f"No published {args.class_level} passage is assigned for "
-                    f"Week {week}; add that assignment before seeding."
+                cur.execute(
+                    """
+                    SELECT id AS passage_id, title
+                    FROM passages
+                    WHERE label=%s AND is_draft=0
+                    ORDER BY id
+                    LIMIT 1
+                    """,
+                    (args.class_level,),
                 )
+                passage = cur.fetchone()
+                if not passage:
+                    raise RuntimeError(
+                        f"No published {args.class_level} passage is available "
+                        f"for the Week {week} seed attempt."
+                    )
+                fallback_weeks.append(week)
             attempts.append((week, passage))
 
         student_id = next_student_id(cur)
@@ -184,6 +198,12 @@ def main():
             f"Weekly scores: Week {previous_week} {args.previous_score}% "
             f"to Week {latest_week} {args.latest_score}%."
         )
+        if fallback_weeks:
+            weeks = ", ".join(str(week) for week in fallback_weeks)
+            print(
+                f"Note: Week {weeks} had no {args.class_level} assignment; "
+                "a published passage of that level was used instead."
+            )
         print("The student should appear in the teacher report's stagnant alerts.")
     except Exception:
         conn.rollback()

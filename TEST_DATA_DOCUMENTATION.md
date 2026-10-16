@@ -180,11 +180,12 @@ python scripts\seed_stagnant_student.py --email stagnant.demo@example.com --name
 The script prompts for and confirms a password without displaying it. It uses the
 database connection settings already configured for the app, creates a new active
 student account, and inserts two quiz attempts using published passages assigned
-to the student's class level. By default the earlier score is 60% and the latest
-is 55%. You can change those with `--previous-score` and `--latest-score`, provided
-the latest score is not higher.
+to the student's class level. If a week has no assignment, it uses another
+published passage of that level and prints a note. By default the earlier score
+is 60% and the latest is 55%. You can change those with `--previous-score` and
+`--latest-score`, provided the latest score is not higher.
 
 The script uses the current program week and the preceding week. If the program
 is in Week 1, it seeds Weeks 1 and 2 so there are two scores to compare. It refuses
-to reuse an existing email, and rolls back all inserts if a required weekly
-assignment is missing.
+to reuse an existing email, and rolls back all inserts if no published passage of
+the selected class level is available.
